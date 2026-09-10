@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Strategic OS Meeting Capture</title>
+
+  <style>
+    :root {
+      font-family: Inter, Arial, sans-serif;
+      color: #1f2937;
+      background: #f5f7fa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 32px 16px;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+
+    .intro {
+      margin-top: 0;
+      margin-bottom: 28px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    .field {
+      margin-bottom: 22px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      background: #ffffff;
+    }
+
+    textarea {
+      min-height: 320px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid #2563eb;
+      outline-offset: 1px;
+      border-color: #2563eb;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .checkbox-row input {
+      width: auto;
+      margin-top: 3px;
+    }
+
+    .checkbox-row label {
+      font-weight: 400;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 13px 18px;
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      background: #111827;
+      color: #ffffff;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    #status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      line-height: 1.4;
+    }
+
+    #status.success {
+      display: block;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+    }
+
+    #status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+    }
+
+    .hint {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Strategic OS Meeting Capture</h1>
+
+    <p class="intro">
+      Paste a meeting transcript here to capture it for Strategic OS processing.
+      This form records the source material only. Interpretation happens later.
+    </p>
+
+    <form id="captureForm">
+      <div class="field">
+        <label for="title">Meeting title</label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          required
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="field">
+        <label for="date">Meeting date</label>
+        <input
+          id="date"
+          name="date"
+          type="date"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="source">Source</label>
+        <select id="source" name="source" required>
+          <option value="">Select source</option>
+          <option value="Teams transcript">Teams transcript</option>
+          <option value="Meeting notes">Meeting notes</option>
+          <option value="Audio-derived transcript">Audio-derived transcript</option>
+          <option value="Other transcript">Other transcript</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="workstream">Workstream</label>
+        <input
+          id="workstream"
+          name="workstream"
+          type="text"
+          autocomplete="off"
+        />
+        <div class="hint">Optional</div>
+      </div>
+
+      <div class="field">
+        <label for="transcript">Transcript</label>
+        <textarea
+          id="transcript"
+          name="transcript"
+          required
+          placeholder="Paste the transcript here..."
+        ></textarea>
+      </div>
+
+      <div class="checkbox-row">
+        <input
+          id="confirmation"
+          name="confirmation"
+          type="checkbox"
+          required
+        />
+
+        <label for="confirmation">
+          I have checked that this material is appropriate to submit to the
+          Strategic OS intake repository.
+        </label>
+      </div>
+
+      <button id="submitButton" type="submit">
+        Capture meeting
+      </button>
+
+      <div id="status" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById("captureForm");
+    const dateInput = document.getElementById("date");
+    const submitButton = document.getElementById("submitButton");
+    const statusBox = document.getElementById("status");
+
+    const today = new Date();
+    const localDate = new Date(
+      today.getTime() - today.getTimezoneOffset() * 60000
+    )
+      .toISOString()
+      .split("T")[0];
+
+    dateInput.value = localDate;
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      statusBox.className = "";
+      statusBox.style.display = "none";
+      statusBox.textContent = "";
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Capturing...";
+
+      const payload = {
+        title: document.getElementById("title").value.trim(),
+        date: document.getElementById("date").value,
+        source: document.getElementById("source").value,
+        workstream: document.getElementById("workstream").value.trim(),
+        transcript: document.getElementById("transcript").value,
+        confirmation: document.getElementById("confirmation").checked
+      };
+
+      try {
+        const response = await fetch("CAPTURE_API_ENDPOINT", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.message || "The transcript could not be saved."
+          );
+        }
+
+        statusBox.className = "success";
+        statusBox.textContent =
+          "Meeting transcript captured successfully.";
+
+        form.reset();
+        dateInput.value = localDate;
+      } catch (error) {
+        statusBox.className = "error";
+        statusBox.textContent =
+          "The transcript could not be saved. Your text has been kept on this page so you can retry.";
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Capture meeting";
+      }
+    });
+  </script>
+</body>
+</html>
