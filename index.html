@@ -54,7 +54,8 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
       width: 100%;
       padding: 11px 12px;
       border: 1px solid #cbd5e1;
@@ -63,11 +64,48 @@
       background: #ffffff;
     }
 
+    textarea {
+      min-height: 260px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       outline: 2px solid #2563eb;
       outline-offset: 1px;
       border-color: #2563eb;
+    }
+
+    .choice-box {
+      padding: 18px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 22px;
+      background: #f8fafc;
+    }
+
+    .choice-box h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .choice-box p {
+      margin: 0 0 18px;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .or-divider {
+      text-align: center;
+      margin: 18px 0;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .checkbox-row {
@@ -139,9 +177,9 @@
     <h1>Strategic OS Meeting Capture</h1>
 
     <p class="intro">
-      Upload the original meeting transcript for Strategic OS processing.
-      VTT is preferred. DOCX is also accepted.
-      This form captures source material only. Interpretation happens later.
+      Capture the original meeting transcript for Strategic OS processing.
+      Uploading the source transcript file is preferred, but you can paste transcript text when needed.
+      Interpretation happens later.
     </p>
 
     <form id="captureForm">
@@ -188,17 +226,34 @@
         <div class="hint">Optional</div>
       </div>
 
-      <div class="field">
-        <label for="transcriptFile">Transcript file</label>
-        <input
-          id="transcriptFile"
-          name="transcriptFile"
-          type="file"
-          accept=".vtt,.docx,text/vtt,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          required
-        />
-        <div class="hint">
-          Preferred format: VTT. DOCX is also accepted.
+      <div class="choice-box">
+        <h2>Transcript</h2>
+        <p>
+          Choose one method. Upload is preferred because it preserves the original source file.
+        </p>
+
+        <div class="field">
+          <label for="transcriptFile">Upload transcript file</label>
+          <input
+            id="transcriptFile"
+            name="transcriptFile"
+            type="file"
+            accept=".vtt,.docx,text/vtt,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          />
+          <div class="hint">
+            Preferred: VTT. DOCX also accepted.
+          </div>
+        </div>
+
+        <div class="or-divider">or</div>
+
+        <div class="field">
+          <label for="transcript">Paste transcript</label>
+          <textarea
+            id="transcript"
+            name="transcript"
+            placeholder="Paste transcript text here if you are not uploading a file..."
+          ></textarea>
         </div>
       </div>
 
@@ -269,21 +324,45 @@
         const transcriptFile =
           document.getElementById("transcriptFile").files[0];
 
-        if (!transcriptFile) {
-          throw new Error("Please select a transcript file.");
+        const transcript =
+          document.getElementById("transcript").value.trim();
+
+        if (!transcriptFile && !transcript) {
+          throw new Error(
+            "Upload a transcript file or paste transcript text."
+          );
         }
 
-        const fileName = transcriptFile.name;
-        const fileExtension =
-          fileName.includes(".")
-            ? fileName.split(".").pop().toLowerCase()
-            : "";
-
-        if (!["vtt", "docx"].includes(fileExtension)) {
-          throw new Error("Only VTT and DOCX transcript files are accepted.");
+        if (transcriptFile && transcript) {
+          throw new Error(
+            "Please use only one transcript method: upload a file or paste text."
+          );
         }
 
-        const fileBase64 = await fileToBase64(transcriptFile);
+        let fileName = "";
+        let fileType = "";
+        let fileExtension = "";
+        let fileBase64 = "";
+
+        if (transcriptFile) {
+          fileName = transcriptFile.name;
+
+          fileExtension =
+            fileName.includes(".")
+              ? fileName.split(".").pop().toLowerCase()
+              : "";
+
+          if (!["vtt", "docx"].includes(fileExtension)) {
+            throw new Error(
+              "Only VTT and DOCX transcript files are accepted."
+            );
+          }
+
+          fileType =
+            transcriptFile.type || "application/octet-stream";
+
+          fileBase64 = await fileToBase64(transcriptFile);
+        }
 
         const payload = {
           title: document.getElementById("title").value.trim(),
@@ -291,9 +370,9 @@
           source: document.getElementById("source").value,
           workstream: document.getElementById("workstream").value.trim(),
           confirmation: document.getElementById("confirmation").checked,
+          transcript: transcript,
           file_name: fileName,
-          file_type:
-            transcriptFile.type || "application/octet-stream",
+          file_type: fileType,
           file_extension: fileExtension,
           file_base64: fileBase64
         };
